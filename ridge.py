@@ -11,6 +11,9 @@ from copy import deepcopy
 class UnderdeterminedException(Exception):
 	pass
 
+class IllposedException(Exception):
+	pass
+
 def lstsq(A,b):
 	return np.linalg.lstsq(A,b)[0]
 
@@ -220,8 +223,11 @@ def grassmann_gauss_newton(U0, X, fX, degree = 1, disp = False,
 		If true, return a third ouput: a dictionary where each key is a list residual, subspace U, gradient, etc.  
 
 	"""
-	U = orth(U0)
+	U = np.copy(U0)
 	n, m = U.shape
+	if m >= 1:
+		U = orth(U)
+
 	N, n2 = X.shape
 	assert n == n2, "shapes of the subspace and X must match"
 	
@@ -230,6 +236,7 @@ def grassmann_gauss_newton(U0, X, fX, degree = 1, disp = False,
 
 	if len(MultiIndex(m, degree)) + n*m >= N:
 		raise UnderdeterminedException
+
 
 
 	UX = np.dot(U.T, X.T)
@@ -393,10 +400,12 @@ class PolynomialRidgeApproximation:
 		if degree is 1 and subspace_dimension is None:
 			subspace_dimension = 1
 
-		if degree is 1 and subspace_dimension > 1:
-			raise Exception('Affine linear functions intrinsically only have a 1 dimensional subspace')
+		if degree is 1 and subspace_dimension != 1:
+			raise IllposedException('Affine linear functions intrinsically only have a 1 dimensional subspace')
 		if degree is 0 and subspace_dimension > 0:
-			raise Exception('The constant function does not have a subspace associated with it')
+			raise IllposedException('The constant function does not have a subspace associated with it')
+		if subspace_dimension is 0 and degree > 1:
+			raise IllposedException('Zero-dimensional subspaces cannot have a polynomial term associated with them')
 
 		self.degree = degree
 		self.subspace_dimension = subspace_dimension
